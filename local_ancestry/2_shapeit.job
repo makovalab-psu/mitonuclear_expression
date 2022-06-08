@@ -1,0 +1,108 @@
+#!/bin/bash
+#SBATCH --job-name=shapeit
+#SBATCH --nodes=1
+#SBATCH --ntasks=1
+#SBATCH --cpus-per-task=8
+#SBATCH --mem=60000
+#SBATCH --time=0-80:00:00
+#SBATCH --mail-type=END
+#SBATCH --mail-user=ejt89@psu.edu
+#SBATCH --chdir=/nfs/secure/scratch6/nekrut_gtex/ejt89/mito_gtex/bin/D_localAnc/LocalAnc_v8
+#SBATCH --output=/nfs/secure/scratch6/nekrut_gtex/ejt89/mito_gtex/bin/D_localAnc/LocalAnc_v8/log/ejt89-shapeit-%j.out
+#SBATCH --error=/nfs/secure/scratch6/nekrut_gtex/ejt89/mito_gtex/bin/D_localAnc/LocalAnc_v8/log/ejt89-shapeit-%j.err
+
+echo "Job started"; date "+%Y-%m-%d.%H:%M:%S"
+export CONDA_ENVS_PATH=/home/ejt89/.conda/envs
+source /opt/anaconda/etc/profile.d/conda.sh
+conda activate /home/ejt89/.conda/envs/ancestry
+#source activate /home/ejt89/.conda/envs/ancestry
+#conda activate ancestry
+conda info --envs
+conda list
+# Arslan's conda environment for running SHAPEIT.
+ls /nfs/brubeck.bx.psu.edu/scratch4/arslan/anaconda2/envs/xtools/bin
+
+# Stop on any errors and print all commands.
+set -uex
+
+if [ -z "$1" ]; then echo "###   ARGUMENT NEEDED: Provide chromosome   ###"; fi
+chrom=${1}
+
+	#GTEx samples in plink.
+	prefix=WGS-chr${chrom}_GTEx		#nam_${chrom}.qc	
+	
+	#Genetic map in HapMap format.
+	genetic_map=/nfs/brubeck.bx.psu.edu/scratch3/arslan/mtnuc_project/analysis/lanc/genetic_map_b37/genetic_map_chr${chrom}_combined_b37.txt	
+	
+	ref_hap=Americans_1kg_1M_${chrom}.recode
+	ref_loc=/nfs/brubeck.bx.psu.edu/scratch3/arslan/mtnuc_project/analysis/lanc/1000g_vcf/chr${chrom}	#${s3}/mtnuc_project/lanc/1000g_vcf/chr${chrom}
+##	ref_vcf=modIDs_Americans_1kg_1M_${chrom}.recode
+##	ref_vcf_loc=../../1000G
+
+cd chr${chrom}
+
+
+# Eliminate sites not in the reference panel.
+cat ${ref_loc}/${ref_hap}.bim | cut -f1,4 | sed 's/\t/_/g' > list.chr${chrom}ref.snps
+plink --bfile ${prefix} \
+        --extract list.chr${chrom}ref.snps \
+        --allow-no-sex --make-bed --out ${prefix}_extr
+
+# Phase haplotypes using shapeit.
+shapeit -B ${prefix}_extr \
+	-M ${genetic_map} \
+	--input-ref ${ref_loc}/${ref_hap}.hap* ${ref_loc}/${ref_hap}.legend* ${ref_loc}/${ref_hap}.samples \
+	--output-max ${prefix}_extr_phased.phased	#Phased haplotypes in HAPS/SAMPLE format (output).
+
+# Convert shapeit output to phased vcf.
+shapeit -convert \
+	--input-haps ${prefix}_extr_phased.phased \
+	--output-vcf ${prefix}_extr_phased.phased.vcf
+
+# Output SNPs retained to file for further filtering.
+cat ${prefix}_extr_phased.phased.haps | cut -d' ' -f2 > ${prefix}_extr_phased.phased.snps
+
+# This is not the best solution, but it might work (ETG).
+# Change the rsIDs in the original VCF files to chr_position.
+# This is useful if you force the ref-allele in plink to be the 1000G one.
+file=Americans_1kg_1M_${chrom}.recode.vcf
+cat ${ref_loc}/$file | grep '#' > modIDs_${file}
+paste <(cat ${ref_loc}/$file | grep -v '#' | cut -f1,2) <(cat ${ref_loc}/$file | grep -v '#' | cut -f1,2 | sed 's/\t/_/g') <(cat ${ref_loc}/$file | grep -v '#' | cut -f4-) >> modIDs_${file}
+
+# Filter Ref vcf file for these SNPs.
+cat modIDs_${file} | grep -v '#' | cut -f3,4 > list.chr${chrom}ref.snps
+vcftools --gzvcf modIDs_${file} --snps list.chr${chrom}ref.snps --recode --out 1kg_ref_bf_merge_${chrom}
+
+
+### Merge ref and phased files together.
+# Create file of reference allele codes from ref vcf file.
+grep -v '^#' 1kg_ref_bf_merge_${chrom}.recode.vcf | cut -f3,4 > ref_coding_${chrom}.txt
+
+# Recode phased vcf file based on ref codes from ref vcf file.
+plink2 --vcf ${prefix}_extr_phased.phased.vcf \
+	--ref-allele force ref_coding_${chrom}.txt \
+	--recode vcf --out ${prefix}_extr_phased.phased.recoded
+
+# BGZIP vcf files before merging.
+bgzip --force ${prefix}_extr_phased.phased.recoded.vcf
+tabix --force ${prefix}_extr_phased.phased.recoded.vcf.gz
+
+bgzip --force 1kg_ref_bf_merge_${chrom}.recode.vcf
+tabix --force 1kg_ref_bf_merge_${chrom}.recode.vcf.gz
+
+# Merge using bcftools.
+bcftools merge ${prefix}_extr_phased.phased.recoded.vcf.gz 1kg_ref_bf_merge_${chrom}.recode.vcf.gz --output merged.${chrom}.vcf 
+
+# Filter out missing genotypes after merge.
+plink2 --vcf merged.${chrom}.vcf \
+        --geno 0.05 \
+        --recode vcf --out rfmixready_merged.${chrom}
+
+# Split into query and ref VCF files.
+bcftools view --samples-file <(cut -f1 ../SPLIT_GTEx_EuAm-AfAm.ids) rfmixready_merged.${chrom}.vcf > rfmixready_merged.${chrom}.query.vcf
+bcftools view --force-samples --samples-file <(cut -f1 ../SPLIT_1kg_CEU-YRI.ids) rfmixready_merged.${chrom}.vcf > rfmixready_merged.${chrom}.ref.vcf
+
+
+
+
+echo "Job ended"; date "+%Y-%m-%d.%H:%M:%S"
