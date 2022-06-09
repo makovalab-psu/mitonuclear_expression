@@ -6,7 +6,7 @@ Step 2: Download whole-genome variants for The 1000 Genomes Project (https://www
 
 Step 3: Change variants file (VCF) into PLINK format (excluding MT).
         *** Repeat this step for GTEx and for 1000 Genomes data separately ***
-        
+
         plink --vcf <INPUT.vcf> --allow-extra-chr --chr 1-22 XY --out <INPUT.plink>
         (Example script: vcf_to_plink.sh )
 
@@ -21,10 +21,10 @@ Step 4: Within-dataset Quality Control steps.
         Rscript rm_palindromic.R <INPUT_filtered.bim>
         plink --bfile <INPUT_filtered> --extract list.nonpalindromic.snps --out <INPUT_filtered_nopal>
         
-        # Identify signs of population stratification.
+        # Test for signs of population stratification (pruning sites by LD, generating IBS values, MDS clustering).
         # Prune sites.
         plink --bfile <INPUT_filtered_nopal> --indep 50 5 2 --allow-no-sex --out <INPUT_filtered_nopal_prune>
-        plink --bfile <INPUT_filtered_nopal> --maf 0.01 --geno 0.1 --mind 0.1 --extract ${prefix}_filtered_nopal_prune.prune.in --out <INPUT_filtered_nopal_pruned>
+        plink --bfile <INPUT_filtered_nopal> --maf 0.01 --geno 0.1 --mind 0.1 --extract <INPUT_filtered_nopal_prune.prune.in> --out <INPUT_filtered_nopal_pruned>
         # Generate IBS values.
         plink --bfile ${prefix}_filtered_pruned --genome --out ${prefix}_genome
         # Generate MDS clustering.
@@ -36,10 +36,20 @@ Step 4: Within-dataset Quality Control steps.
 
 Step 5: Merge GTEx and 1000 Genomes datasets.
 
-        
         (Example script: merge_gtex1kg.sh )
+        
+Step 6: Quality control steps (between GTEx and 1000 Genomes).
 
+        
 
 Step 6: Compute global ancestry estimates using ADMIXTURE (https://dalexander.github.io/admixture/download.html).
 
+        # Cross-validation error for GTEx samples (without reference populations), assuming a K of 1, 2, 3, or 4.
+        
+        # Unsupervised run of GTEx and all 1000 Genomes populations.
+        
+        # Supervised run of GTEx samples with CEU (Central Europeans in Utah) and YRI (Yorubans) 1000 Genomes populations.
+        
+        # Generate global ancestry bar plots.
+                
         (Example script: admix.sh )
