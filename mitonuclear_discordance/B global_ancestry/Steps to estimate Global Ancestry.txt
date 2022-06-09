@@ -1,17 +1,14 @@
 Aim: Obtain global ancestry for each GTEx sample.
 
-Step 1: Download whole-genome variants for all GTEx samples (requires dbGap access).
+Step 0.1: Download whole-genome variants for all GTEx samples (requires dbGap access).
 
-Step 2: Download whole-genome variants for The 1000 Genomes Project (https://www.internationalgenome.org/data-portal/sample).
+Step 0.2: Download whole-genome variants for The 1000 Genomes Project populations (https://www.internationalgenome.org/data-portal/sample).
 
-Step 3: Change variants file (VCF) into PLINK format (excluding MT).
+Step 1: Within-dataset Quality Control steps. [ Example script: 1_plink_qc.sh  ]
         *** Repeat this step for GTEx and for 1000 Genomes data separately ***
-
+        
+        # Change variants file (VCF) into PLINK format (and exclude MT).
         plink --vcf <INPUT.vcf> --allow-extra-chr --chr 1-22 XY --out <INPUT.plink>
-        (Example script: vcf_to_plink.sh )
-
-Step 4: Within-dataset Quality Control steps.
-        *** Repeat this step for GTEx and for 1000 Genomes data separately ***
         
         # Filter by Minor Allele Freq, Genotype missingness across samples, and keep biallelic sites.
         # Keep only AfAm and EuAm individuals.
@@ -32,24 +29,39 @@ Step 4: Within-dataset Quality Control steps.
         # Create MDS plots.
         Rscript makeplot_mds.R ${prefix}_mds.mds <GTEX/1000G>
         
-        (Example script: plink_qc.sh )   
+        # Proceed the data does not have issues with population stratification.
 
-Step 5: Merge GTEx and 1000 Genomes datasets.
-
-        (Example script: merge_gtex1kg.sh )
+Step 2: Merge GTEx and 1000 Genomes datasets. [ Example script: 2_merge_gtex1kg.sh ]
         
-Step 6: Quality control steps (between GTEx and 1000 Genomes).
-
+        # Intersect to get common SNPs between GTEx and 1000G.
+        bedtools intersect -a variants.GTEx.bed -b variants.1000G.bed > list.common.snps
         
+        # Merge GTEx and 1000G variant files.
+        echo <"GTEx_filtered_nopal"> > files_to_merge.txt ; echo <"1000G_filtered_nopal"> >> files_to_merge.txt
+        plink --merge-list files_to_merge.txt --make-bed --out ${prefix_M}
+        
+Step 3: Quality control steps (between GTEx and 1000 Genomes).
 
-Step 6: Compute global ancestry estimates using ADMIXTURE (https://dalexander.github.io/admixture/download.html).
+        # Repeat Step 1 but on the merged dataset.
 
+Step 4: Global ancestry estimates using ADMIXTURE (https://dalexander.github.io/admixture/download.html). [ Example script: 4_admix.sh ]
+
+       ## Obtain number of founder populations in GTEx populations: 
         # Cross-validation error for GTEx samples (without reference populations), assuming a K of 1, 2, 3, or 4.
+        K = <1/2/3/4>
+        ./admixture32 --cv <GTEx_dataset.bed> ${K}
         
+       ## Identify which 1000 Genomes populations can serve as the founder populations:
         # Unsupervised run of GTEx and all 1000 Genomes populations.
+        ./admixture32 <GTEx_1000G_dataset.bed> ${K} 
         
+       ## Compute global ancestry estimates (generates a Q file):
         # Supervised run of GTEx samples with CEU (Central Europeans in Utah) and YRI (Yorubans) 1000 Genomes populations.
+        # The .pop file indicates the population labels (for K=2, a founder population 1, founder population 2 and the unknown/GTEx samples).
+        K = 2
+        bash ${DATADIR}/make_pop.sh <GTEx_CEU_YRI_dataset>
+        ./admixture32 <GTEx_CEU_YRI_dataset.bed> ${K} --supervised
         
         # Generate global ancestry bar plots.
-                
-        (Example script: admix.sh )
+        Rscript plt_structure.R ${K} GTEx_CEU_YRI_dataset.${K}.Q <GTEx_CEU_YRI_dataset.fam> sample_ids.txt
+        
