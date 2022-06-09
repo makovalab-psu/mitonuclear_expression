@@ -7,42 +7,36 @@ Step 2: Download whole-genome variants for The 1000 Genomes Project (https://www
 Step 3: Change variants file (VCF) into PLINK format (excluding MT).
         *** Repeat this step for GTEx and for 1000 Genomes data separately ***
         
-        plink --vcf <INPUT.vcf> --allow-extra-chr --chr 1-22 XY --out <OUTPUT.plink>
+        plink --vcf <INPUT.vcf> --allow-extra-chr --chr 1-22 XY --out <INPUT.plink>
         (Example script: vcf_to_plink.sh )
 
 Step 4: Within-dataset Quality Control steps.
         *** Repeat this step for GTEx and for 1000 Genomes data separately ***
         
-        # Filter by Minor Allele Freq, Genotype missingness across samples, and keep non-palindromic sites.
+        # Filter by Minor Allele Freq, Genotype missingness across samples, and keep biallelic sites.
         # Keep only AfAm and EuAm individuals.
-        plink --bfile ${INPUT_prefix} --maf 0.01 --geno 0.2 --keep <Select_Individuals.txt> --biallelic-only strict --out ${INPUT_prefix}_filtered
+        plink --bfile <INPUT> --maf 0.01 --geno 0.2 --keep <Select_Individuals.txt> --biallelic-only strict --out <INPUT_filtered>
         
-        # Identify the non-palindromic SNPs, then filter them out.
-        Rscript rm_palindromic.R ${input_prefix}_filtered.bim
-        plink --bfile ${INPUT_prefix} --extract list.nonpalindromic.snps --out ${prefix}_filtered_nopal
+        # Identify the palindromic SNPs, then filter them out.
+        Rscript rm_palindromic.R <INPUT_filtered.bim>
+        plink --bfile <INPUT_filtered> --extract list.nonpalindromic.snps --out <INPUT_filtered_nopal>
         
-        # List of sites to prune.
-        plink --bfile ${prefix}_filtered_nopal --indep 50 5 2 --allow-no-sex --out ${prefix}_filtered_nopal_prune
-        # Keep that list of pruned sites.
-        plink --bfile ${prefix}_filtered_nopal --maf 0.01 --geno 0.1 --mind 0.1 --extract ${prefix}_filtered_nopal_prune.prune.in --make-bed --out ${prefix}_filtered_pruned
-        
-        # Generate IBS values (for pop startification).
-        plink --bfile ${prefix}_filtered_pruned \
-        --genome \
-        --out ${prefix}_genome
+        # Identify signs of population stratification.
+        # Prune sites.
+        plink --bfile <INPUT_filtered_nopal> --indep 50 5 2 --allow-no-sex --out <INPUT_filtered_nopal_prune>
+        plink --bfile <INPUT_filtered_nopal> --maf 0.01 --geno 0.1 --mind 0.1 --extract ${prefix}_filtered_nopal_prune.prune.in --out <INPUT_filtered_nopal_pruned>
+        # Generate IBS values.
+        plink --bfile ${prefix}_filtered_pruned --genome --out ${prefix}_genome
         # Generate MDS clustering.
-        plink --bfile ${prefix}_filtered_pruned \
-        --read-genome ${prefix}_genome.genome --cluster --K 2 --mds-plot 4 \
-        --out ${prefix}_mds
-
-
-        # Create plots.
-        Rscript ../../makeplot_mds.R ${prefix}_mds.mds "GTEX"
+        plink --bfile ${prefix}_filtered_pruned --read-genome ${prefix}_genome.genome --cluster --K 2 --mds-plot 4 --out ${prefix}_mds
+        # Create MDS plots.
+        Rscript makeplot_mds.R ${prefix}_mds.mds <GTEX/1000G>
         
         (Example script: plink_qc.sh )   
 
 Step 5: Merge GTEx and 1000 Genomes datasets.
 
+        
         (Example script: merge_gtex1kg.sh )
 
 
