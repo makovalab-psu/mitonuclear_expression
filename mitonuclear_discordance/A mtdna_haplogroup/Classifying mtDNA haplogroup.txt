@@ -14,4 +14,4 @@ Step 3: Use 'classify' function to obtain mtDNA haplogroup from the GTEx fastA o
 
 The haplogroups.txt file will provide highly detailed mtDNA haplogroup classification. (e.g. C1b4)
 We use the mtDNA macrohaplogroup (e.g. C)
-A sample script is also provided in this directory (classHaplogrep.job).
+A sample script is also provided in this directory (classHaplogrep.sh).

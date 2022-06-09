@@ -1,0 +1,49 @@
+#!/bin/bash
+#################################################
+#  Obtain Global ancestry and make bar plots. 	#
+#################################################
+
+# Stop on any errors and print all commands.
+set -uex
+
+################################################################
+# Obtain number of ancestry proportions in GTEx:
+#  Get Cross validation error for GTEx samples, assuming K of 1, 2, 3, or 4.
+./admixture32 --cv GTEx_dataset.bed 1 | tee cv.1.log
+./admixture32 --cv GTEx_dataset.bed 2 | tee cv.2.log
+./admixture32 --cv GTEx_dataset.bed 3 | tee cv.3.log
+./admixture32 --cv GTEx_dataset.bed 4 | tee cv.4.log
+
+# Choose K (number of ancestry proportions) based on lowest cross-validation error.
+K = 2
+
+
+
+#################################
+# Unsupervised run of ADMIXTURE:
+# Identify which 1000 Genomes populations can serve as the founder populations (for each ancestry proportion).
+./admixture32 GTEx_1000G_dataset.bed ${K} 
+
+# Create global ancestry bar plots.
+Rscript plt_structure.R ${K} GTEx_1000G_dataset.${K}.Q GTEx_1000G_dataset.fam samples_ids_UNS.txt
+
+
+
+#################################
+# Supervised run of ADMIXTURE: 
+# Compute global ancestry estimates (generates a Q file).
+
+	prefix_sup=${prefix}_keep${K}
+	FILE_BED=${DATADIR}/merged_gtex1kg/ALL/${prefix_sup}.bed
+	POP_FILE=${DATADIR}/merged_gtex1kg/ALL/${prefix_sup}.pop
+
+# Create population (.pop) file.
+bash ${DATADIR}/make_pop.sh GTEx_CEU_YRI_dataset
+
+# Run Admixture32 in supervised mode (.pop file must be in same directory).
+./admixture32 ${FILE_BED} ${K} --supervised
+
+# Create global ancestry bar plots.
+Rscript $DATADIR/plt_structure.R ${K} GTEx_CEU_YRI_dataset.${K}.Q GTEx_CEU_YRI_dataset.fam samples_ids_SUP.txt
+
+
