@@ -1,0 +1,9 @@
+Aim: Calculate mitonuclear DNA discordance (MND).
+
+Step 1: Obtain global (nuclear DNA) ancestry estimates for the GTEx samples.
+
+Step 2: Obtain mtDNA haplogroup for GTEx samples.
+
+Step 3: Determine the fraction of the (nuclear) global ancestry that does not match the ancestry of mtDNA.
+
+		The python script "calc_MND_K2.py" takes the global ancestry and mtDNA haplogroup files and returns this calculation of mitonuclear DNA discordance for K=2.
