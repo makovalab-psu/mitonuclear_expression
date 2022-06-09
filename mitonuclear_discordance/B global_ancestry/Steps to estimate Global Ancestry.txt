@@ -1,0 +1,25 @@
+Aim: Obtain global ancestry for each GTEx sample.
+
+Step 1: Download whole-genome variants for all GTEx samples (requires dbGap access).
+
+Step 2: Download whole-genome variants for The 1000 Genomes Project (https://www.internationalgenome.org/data-portal/sample).
+
+Step 3: Change variants file (VCF) into PLINK format (excluding MT).
+        *** Repeat this step for GTEx and for 1000 Genomes data separately ***
+        
+        plink --noweb --vcf <INPUT.vcf> --allow-extra-chr --chr 1-22 XY --make-bed --out <OUTPUT.plink>
+        (Example script: vcf_to_plink.sh )
+
+Step 4: Within-dataset Quality Control steps.
+        *** Repeat this step for GTEx and for 1000 Genomes data separately ***
+        
+        (Example script: plink_qc.sh )   
+
+Step 5: Merge GTEx and 1000 Genomes datasets.
+
+        (Example script: merge_gtex1kg.sh )
+
+
+Step 6: Compute global ancestry estimates using ADMIXTURE (https://dalexander.github.io/admixture/download.html).
+
+        (Example script: admix.sh )
