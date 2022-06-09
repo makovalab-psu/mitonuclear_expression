@@ -1,38 +1,15 @@
 #!/bin/bash
-#SBATCH --job-name=haplogrep
-#SBATCH --nodes=1
-#SBATCH --ntasks=1
-#SBATCH --cpus-per-task=5
-#SBATCH --mem=30000
-#SBATCH --time=0-80:00:00
-#SBATCH --mail-type=END
-#SBATCH --mail-user=ejt89@psu.edu
-#SBATCH --workdir=/nfs/secure/scratch6/nekrut_gtex/ejt89/mito_gtex/bin/A_haplogrep
-#SBATCH --output=/nfs/secure/scratch6/nekrut_gtex/ejt89/mito_gtex/bin/A_haplogrep/log/ejt89-haplogrep-%j.out
-#SBATCH --error=/nfs/secure/scratch6/nekrut_gtex/ejt89/mito_gtex/bin/A_haplogrep/log/ejt89-haplogrep-%j.err
-
-echo "Job started"; date "+%Y-%m-%d.%H:%M:%S"
-source activate /home/ejt89/.conda/envs/ancestry
-conda info --envs
-conda list
 
 ############################################
 # Classify mtDNA haplogroup with HaploGrep #
 ############################################
 
-# https://github.com/seppinho/haplogrep-cmd
-# Haplogrep will run locally with conda env 'haplogrep' for java 8.
-# Needs variants of ChrM, or a fasta of it?
+# HaploGrep GitHub: https://github.com/seppinho/haplogrep-cmd
+# Haplogrep requires java 8.
 
-haplogrep=/nfs/secure/scratch6/nekrut_gtex/ejt89/mito_gtex/src/haplogrep
-
-IN='All_GTEx_MT.phg001219.v1.GTEx_v8_WES.SNPs.qc.info.recode.vcf' # path to input vcf or fasta file
+INPUT='All_GTEx_MT.phg001219.v1.GTEx_v8_WES.SNPs.qc.info.recode.vcf' # path to input vcf or fasta file
 FORMAT='vcf' # input can also be 'fasta'
-OUT='All_GTEx_MT.phg001219.v1.GTEx_v8_WES.SNPs.qc.info.recode.haplo' # name of output
-$haplogrep classify --extend-report --in $IN --format $FORMAT --out $OUT
+OUTPUT='All_GTEx_MT.phg001219.v1.GTEx_v8_WES.SNPs.qc.info.recode.haplo' # name of output
 
-
-echo "Job ended"; date "+%Y-%m-%d.%H:%M:%S"
-
-
+./haplogrep classify --extend-report --in ${INPUT} --format ${FORMAT} --out ${OUTPUT}
 
