@@ -3,6 +3,9 @@
 # Quality control steps (within-dataset).
 #########################################
 
+# Change variants file (VCF) into PLINK format (and exclude MT).
+plink --vcf <INPUT.vcf> --allow-extra-chr --chr 1-22 XY --out <INPUT.plink>
+
 # Filter by Minor Allele Freq, Genotype missingness across samples, and keep biallelic sites.
 # Keep only AfAm and EuAm individuals.
 plink --bfile <INPUT> --maf 0.01 --geno 0.2 --keep <Select_Individuals.txt> --biallelic-only strict --out <INPUT_filtered>
