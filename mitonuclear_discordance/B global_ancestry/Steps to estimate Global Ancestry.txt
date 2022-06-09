@@ -46,12 +46,12 @@ Step 3: Quality control steps (between GTEx and 1000 Genomes).
 
 Step 4: Global ancestry estimates using ADMIXTURE (https://dalexander.github.io/admixture/download.html). [ Example script: 4_admix.sh ]
 
-       ## Obtain number of founder populations in GTEx populations: 
+       ## Obtain number of ancestry proportions in GTEx: 
         # Cross-validation error for GTEx samples (without reference populations), assuming a K of 1, 2, 3, or 4.
         K = <1/2/3/4>
         ./admixture32 --cv <GTEx_dataset.bed> ${K}
         
-       ## Identify which 1000 Genomes populations can serve as the founder populations:
+       ## Identify which 1000 Genomes populations can serve as the founder populations (for each ancestral proportion):
         # Unsupervised run of GTEx and all 1000 Genomes populations.
         ./admixture32 <GTEx_1000G_dataset.bed> ${K} 
         
