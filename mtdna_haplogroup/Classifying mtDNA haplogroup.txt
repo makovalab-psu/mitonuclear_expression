@@ -1,0 +1,17 @@
+Aim: Use variation in the mitochondrial genome to classify the mtDNA haplogroup for all GTEx samples.
+
+Step 1: Download the MT variants for all GTEx samples (requires dbGap access).
+
+Step 2: Install Haplogrep (https://github.com/seppinho/haplogrep-cmd)
+
+        git clone https://github.com/seppinho/haplogrep-cmd.git
+        curl -sL haplogrep.now.sh | bash
+        ./haplogrep
+
+Step 3: Use 'classify' function to obtain mtDNA haplogroup from the GTEx fastA or VCF.
+
+        ./haplogrep classify --in <> --format <vcf/fasta> --out haplogroups.txt
+
+The haplogroups.txt file will provide highly detailed mtDNA haplogroup classification. (e.g. C1b4)
+We use the mtDNA macrohaplogroup (e.g. C)
+A sample script is also provided in this directory (classHaplogrep.job).
