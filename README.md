@@ -1,10 +1,11 @@
 # Exploring the effects of mitonuclear interactions on mitochondrial DNA gene expression in humans
 #### This repository contains all the code generated for the manuscript.
-doi: [10.3389/fgene.2022.797129](https://doi.org/10.3389/fgene.2022.797129)
 
 Edmundo Torres-González and Kateryna D. Makova*
 
 *Correspondence to Kateryna D. Makova (kdm16@psu.edu)
+
+doi: [10.3389/fgene.2022.797129](https://doi.org/10.3389/fgene.2022.797129)
 
 ## Directory Structure
 
